@@ -6,7 +6,7 @@ A small, offline workbench for creating **Lumi**, a soft pink Minecraft skin.
 
 | Texture | Model | Export palette | PNG size | License |
 | --- | --- | --- | --- | --- |
-| 64 × 64 | Slim, 3-pixel arms | 50 entries, including transparency | **999 bytes** | [0BSD](LICENSE) |
+| 64 × 64 | Slim, 3-pixel arms | 46 entries, including transparency | **999 bytes** | [0BSD](LICENSE) |
 
 ## Make Lumi
 
@@ -21,7 +21,7 @@ This generates `build/Lumi.png`. The checked-in [Lumi.png](Lumi.png) is the
 canonical export. Both have this SHA-256:
 
 ```text
-abea3475884e40ab9f72a50f3bc80be0018b53086c4c304499625a576463cd32
+ba4622f5c05858c62727b1f9cb3b2bda5d5eb5e8f73b8d5aa63302ac741282df
 ```
 
 To generate the full-color artwork itself:
@@ -31,7 +31,9 @@ python3 lumi.py artwork
 ```
 
 The result is `build/Lumi-artwork.png`, drawn from an empty texture by the
-same pipeline used for the compact export.
+same pipeline used for the compact export. The artwork has 284 distinct RGBA
+values including transparency; its palette is unrestricted. Only the compact
+PNG uses an indexed export palette.
 
 ## The drawing pipeline
 
@@ -39,14 +41,15 @@ The production build has six fixed drawing stages:
 
 1. **Foundation:** face features, chin, neckline, plain fabric, and quiet folds.
 2. **Limbs:** short cap sleeves, continuous cuffs, hand shading, shorts, and
-   smooth skin-to-sock gradients.
+   fitted ivory stockings that wrap onto the inner leg faces.
 3. **Hair:** analytic S-curves and Gaussian lobes create the soft waves,
    reflections, recessed bends, rounded ends, and selective outer-layer locks.
-   Hair edges wrap around adjoining UV faces.
+   Hair edges wrap around adjoining UV faces. Sparse glaze strokes and six
+   grouped shades finish the existing curl crests and valleys.
 4. **Footwear:** matching base and outer sole boundaries create raised heels,
    rounded forefeet, and recessed arches.
 5. **Flowers:** three final pastel flower recipes and their small leaf details.
-6. **Detail finish:** 20 explicit pixel corrections refine silhouettes and lights.
+6. **Detail finish:** 25 explicit pixel corrections refine silhouettes and lights.
 
 The completed artwork then passes through the export palette and PNG encoder.
 The drawing code, feature tables, and detail pass are all editable source.
@@ -62,7 +65,8 @@ validates every match, and writes a standard zlib-wrapped DEFLATE stream.
 It calculates the PNG checksums and Adler-32 during each build. This makes
 the complete 999-byte output deterministic with Python alone.
 
-See [the source format](docs/FORMAT.md) for the drawing and packing data.
+See [the source format](docs/FORMAT.md) for the drawing and packing data,
+and the [design review](docs/REVIEW.md) for the final inspection.
 
 ## Toolbench
 
@@ -79,6 +83,10 @@ python3 lumi.py palette
 # Run the full test suite.
 python3 -m unittest discover -s tests -v
 ```
+
+Running `diff` without image arguments compares the generated full-color art
+with the compact export. The checked-in [difference mask](docs/diff-mask.png)
+and [measurements](docs/quality.json) show this export’s color loss.
 
 Diff masks use white for unchanged pixels and black for the largest visible
 perceptual difference. Hidden RGB values in fully transparent pixels are ignored.

@@ -4,9 +4,11 @@
   "width": 64,
   "height": 64,
   "bytes": 999,
-  "palette_entries": 50,
-  "sha256": "abea3475884e40ab9f72a50f3bc80be0018b53086c4c304499625a576463cd32",
-  "rgba_sha256": "e5f5f7d900e806fb00997aa9c5add87bd12c8b76b55efad846596b55fc17fabc",
-  "row_sha256": "1c6734aa08c1a2bdc725d2fa4e2dcdc3619844259efc91cc696ab650572c05eb",
-  "artwork_sha256": "37881e87525cdb629e2a0311e0653e3a2fd5f926bedd0b084aa47442642f8d1a"
+  "palette_entries": 46,
+  "artwork_colors": 284,
+  "opaque_pixels": 1896,
+  "sha256": "ba4622f5c05858c62727b1f9cb3b2bda5d5eb5e8f73b8d5aa63302ac741282df",
+  "rgba_sha256": "60c5fb919a94cbf49cd9665bedc178d0eb1dac71d1c0ef115f10d3b6b57737ac",
+  "row_sha256": "9c701ea8036ef6325bb4b43db1326e09c9c13f3abffe1f23d67e46c57aa5194b",
+  "artwork_sha256": "bc0262b88f74b2fcf07330b91262f835a734ffa93fac5e08cf1cab4545af09f2"
 }

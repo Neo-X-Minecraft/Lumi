@@ -8,16 +8,19 @@ footwear are computed directly by the drawing functions.
 
 `features.json` contains compact facial and fabric feature tables. Colors
 are hexadecimal RGBA values. Flower recipes list the upper, left, right,
-lower, and center colors in that order.
+lower, and center colors in that order. `hair_glazes` adds soft value strokes
+only where hair is already painted; `curl_shades` groups selected existing
+crest and valley pixels into six deliberate shades. Neither changes the curl
+silhouettes or their transparent outer-layer gaps.
 
 `details.json` is a list of `[x, y, RGBA]` entries applied once at the end of
-the drawing stage. There are 20 entries.
+the drawing stage. There are 25 entries.
 
 ## Export
 
 `finish.json` contains:
 
-- `source_palette`: the artwork's RGBA color domain;
+- `source_palette`: the artwork's complete RGBA color domain, without a 256-color limit;
 - `palette`: the ordered export RGBA palette;
 - `map`: one export index for each source color;
 - `filters`: one PNG filter number per row;
@@ -44,3 +47,7 @@ DEFLATE blocks, with canonical Huffman coding and explicit padding.
 `manifest.json` locks the output dimensions, pixel hash, file hash, palette
 size, and 999-byte file size. `verify` checks these properties independently
 of the drawing stage.
+
+The manifest also records the unrestricted artwork color count and opaque texel
+count. Alpha masks stay identical through the export mapping. Flower colors and
+the centered sleeve-fold highlight are protected during palette refinement.

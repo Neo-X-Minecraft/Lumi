@@ -56,6 +56,8 @@ def front(raw, scale=10, back=False, arm_width=3):
 def preview(raw, yaw=-0.38, pitch=-0.13, arm_width=3):
     W, H, S = (320, 500, 11.5)
     out = bytearray([27, 33, 29, 255] * (W * H))
+    depth = [-float('inf')] * (W * H)
+    translucent = []
     cy, sy, cp, sp = (math.cos(yaw), math.sin(yaw), math.cos(pitch), math.sin(pitch))
 
     def rotate(p):
@@ -165,8 +167,19 @@ def preview(raw, yaw=-0.38, pitch=-0.13, arm_width=3):
                 alpha = raw[i + 3] / 255
                 if not alpha:
                     continue
+                z = A[2] + a * (B[2] - A[2]) + b * (C[2] - A[2])
+                rgb = [min(255, raw[i + k] * light) for k in range(3)]
+                if alpha < 1:
+                    translucent.append((z, j, rgb, alpha))
+                    continue
+                if z <= depth[j // 4]:
+                    continue
+                depth[j // 4] = z
                 for k in range(3):
-                    out[j + k] = round(
-                        min(255, raw[i + k] * light) * alpha + out[j + k] * (1 - alpha)
-                    )
+                    out[j + k] = round(rgb[k])
+    for z, j, rgb, alpha in sorted(translucent, key=lambda item: item[0]):
+        if z < depth[j // 4]:
+            continue
+        for k in range(3):
+            out[j + k] = round(rgb[k] * alpha + out[j + k] * (1 - alpha))
     return png(W, H, out)

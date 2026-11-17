@@ -1,0 +1,25 @@
+{
+  "skin": "Lumi",
+  "png_sha256": "ba4622f5c05858c62727b1f9cb3b2bda5d5eb5e8f73b8d5aa63302ac741282df",
+  "artwork_sha256": "bc0262b88f74b2fcf07330b91262f835a734ffa93fac5e08cf1cab4545af09f2",
+  "dimensions": [
+    64,
+    64
+  ],
+  "model": "slim",
+  "bytes": 999,
+  "artwork_rgba_colors": 284,
+  "export_palette_entries": 46,
+  "opaque_texels": 1896,
+  "alpha_mask_preserved": true,
+  "flower_texels_preserved": 15,
+  "base_faces_complete": 36,
+  "base_texels_complete": 1568,
+  "independent_png_decoder": "FFmpeg",
+  "standalone_tests": 19,
+  "review_model": "GPT-6.1",
+  "review_reasoning": "max",
+  "review_score": 100,
+  "review_scope": "64×64 slim pastel Minecraft skin brief",
+  "review_views": 150
+}

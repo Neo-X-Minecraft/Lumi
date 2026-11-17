@@ -125,10 +125,12 @@ def limbs(c):
                     fold = round(5 * (1 - abs(x - (w - 1) / 2) / max(1, (w - 1) / 2)))
                     if y < 2:
                         color = shift(
-                            (201, 139, 162), fold + delta - (2 if y == 1 else 0)
+                            (211, 149, 172), fold + delta - (2 if y == 1 else 0)
                         )
                     elif y == 2:
                         color = shift((217, 167, 185), fold + delta + 3)
+                        if x in (0, w - 1):
+                            color = mix(color, c.get(u + du + x, v + 5)[:3], 0.25)
                     else:
                         color = colors[x]
                     if (
@@ -142,7 +144,7 @@ def limbs(c):
                         c.put(ou + du + x, ov + 4 + y, color)
     skin, sock, shorts, shoe, sole = (
         (255, 235, 231),
-        (255, 245, 239),
+        (252, 246, 235),
         (229, 181, 196),
         (224, 180, 193),
         (209, 164, 179),
@@ -160,6 +162,9 @@ def limbs(c):
             for y in range(h):
                 for x in range(w):
                     edge = -2 if x not in (1, 2) else 0
+                    inner = (face == ("left" if part == "rleg" else "right")
+                             or face == "front" and x == (3 if part == "rleg" else 0)
+                             or face == "back" and x == (0 if part == "rleg" else 3))
                     if face == "top":
                         color = shift(shorts, delta - 2)
                     elif face == "bottom":
@@ -171,11 +176,11 @@ def limbs(c):
                     elif y <= 4:
                         color = shift(skin, delta + edge)
                     elif y == 5:
-                        color = shift(mix(skin, sock, 0.28), delta + edge)
+                        color = shift(skin if inner else (246, 236, 224), delta + edge)
                     elif y == 6:
-                        color = shift(mix(skin, sock, 0.62), delta + edge)
+                        color = shift((246, 236, 224) if inner else (252, 243, 233), delta + edge)
                     elif y in (7, 8):
-                        color = shift(sock, delta + (1 if x == 1 else edge))
+                        color = shift(sock, delta + edge)
                     elif y == 9:
                         color = shift(sock if x in (1, 2) else shoe, delta + edge)
                     elif y == 10:
@@ -187,7 +192,7 @@ def limbs(c):
                     c.put(u + x, v + y, color)
 
 
-def hair(c):
+def hair(c, glazes=(), shades=()):
     garment = bytes(c.raw)
     hair_pixels = set()
 
@@ -389,8 +394,9 @@ def hair(c):
             (19, 20, front_locks, 0),
             (28, 27, front_locks, 7),
         ]:
-            c.put(x, 20 + y, c.get(bx, 20 + y))
-            c.put(x, 36 + y, c.get(bx, 20 + y) if mask[y][mx] == "#" else None)
+            color = c.get(bx, 20 + y)
+            c.put(x, 20 + y, color)
+            c.put(x, 36 + y, color if mask[y][mx] == "#" else None)
     for face, u, v, w, h in faces("body", True):
         if face not in ("top", "bottom"):
             base_chart = next(chart for chart in faces("body") if chart[0] == face)
@@ -398,6 +404,15 @@ def hair(c):
                 c.put(u + x, v + 11, c.get(base_chart[1] + x, base_chart[2] + 11))
     for x, y in [(49, 0), (54, 0), (49, 7), (54, 7)]:
         c.put(x, y, shift(c.get(x - 32, y), 2))
+    for glaze in glazes:
+        for x, y in glaze["points"]:
+            outer = (x + 32, y) if y < 16 else (x, y + 16)
+            for xx, yy in ((x, y), outer):
+                if c.get(xx, yy)[3]:
+                    c.put(xx, yy, shift(c.get(xx, yy), glaze["delta"]))
+    for shade in shades:
+        for x, y in shade["points"]:
+            c.put(x, y, shade["color"])
 
 
 def footwear(c):
@@ -453,7 +468,7 @@ def generate(root):
     canvas = Canvas()
     foundation(canvas, features)
     limbs(canvas)
-    hair(canvas)
+    hair(canvas, features.get("hair_glazes", ()), features.get("curl_shades", ()))
     footwear(canvas)
     flowers(canvas, features["flowers"])
     for x, y, color in json.loads((root / "source/details.json").read_text()):

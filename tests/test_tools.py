@@ -8,6 +8,7 @@ import sys
 import tempfile
 import unittest
 import zlib
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -24,7 +25,7 @@ class ArtworkTests(unittest.TestCase):
         )
         self.assertEqual(hashlib.sha256(art["rgba"]).hexdigest(), spec["rgba_sha256"])
         self.assertEqual(
-            sum(bool(art["rgba"][i + 3]) for i in range(0, 16384, 4)), 1896
+            sum(bool(art["rgba"][i + 3]) for i in range(0, 16384, 4)), spec["opaque_pixels"]
         )
 
     def test_procedural_hair_and_detail_finish(self):
@@ -33,7 +34,7 @@ class ArtworkTests(unittest.TestCase):
         design.foundation(canvas, features)
         design.limbs(canvas)
         foundation = bytes(canvas.raw)
-        design.hair(canvas)
+        design.hair(canvas, features.get('hair_glazes', ()), features.get('curl_shades', ()))
         self.assertGreater(
             sum(
                 foundation[i : i + 4] != canvas.raw[i : i + 4]
@@ -44,8 +45,8 @@ class ArtworkTests(unittest.TestCase):
         design.footwear(canvas)
         design.flowers(canvas, features["flowers"])
         details = json.loads((ROOT / "source/details.json").read_text())
-        self.assertEqual(len(details), 20)
-        self.assertEqual(len({(x, y) for x, y, _ in details}), 20)
+        self.assertEqual(len(details), 25)
+        self.assertEqual(len({(x, y) for x, y, _ in details}), 25)
         for x, y, color in details:
             canvas.put(x, y, color)
         self.assertEqual(bytes(canvas.raw), design.generate(ROOT))
@@ -79,23 +80,75 @@ class ArtworkTests(unittest.TestCase):
             self.assertEqual(band[8:12], [at(u + 11, v + z) for z in range(3, -1, -1)])
             self.assertEqual(band[12:], [at(u + 8 + x, v) for x in range(3, -1, -1)])
 
+    def test_complete_hidden_faces_and_fitted_stocking_edges(self):
+        raw = design.generate(ROOT)
+
+        def at(x, y):
+            return raw[(y * 64 + x) * 4:(y * 64 + x + 1) * 4]
+
+        for part in design.RIG:
+            for _, u, v, w, h in design.faces(part):
+                for y in range(v, v + h):
+                    for x in range(u, u + w):
+                        self.assertEqual(at(x, y)[3], 255, (part, x, y))
+        for ou, ov in [(0, 32), (0, 48)]:
+            self.assertTrue(all(at(ou + x, ov + 9)[3] == 0 for x in range(16)))
+        for ax, ay, bx in [(8, 26, 7), (16, 58, 20)]:
+            self.assertLessEqual(max(abs(a-b) for a, b in zip(at(ax, ay), at(bx, ay))), 2)
+
     def test_palette_constraints(self):
         art = artwork.load(ROOT)
         tuned = palette.refine(ROOT)
         fixed = set(art["finish"]["fixed_colors"])
-        self.assertEqual(len(tuned["palette"]), 50)
+        self.assertEqual(len(tuned["palette"]), len(art["palette"]))
         for a, b in zip(art["finish"]["palette"], tuned["palette"]):
             if a[1:7] in fixed:
                 self.assertEqual(a, b)
             self.assertEqual(a[-2:], b[-2:])
 
+    def test_export_preserves_flowers_alpha_and_cap_folds(self):
+        art = artwork.load(ROOT)
+        source, compact = art["design"], art["rgba"]
+        self.assertEqual(source[3::4], compact[3::4])
+        features = json.loads((ROOT / "source/features.json").read_text())
+        for bloom in features["flowers"]:
+            x, y = bloom["center"]
+            for dx, dy in ((0, -1), (-1, 0), (1, 0), (0, 1), (0, 0)):
+                i = ((y + dy) * 64 + x + dx) * 4
+                self.assertEqual(source[i:i + 4], compact[i:i + 4])
+        for x, y in ((45, 16), (45, 17), (45, 18), (45, 19),
+                     (45, 20), (45, 21), (52, 20), (52, 21),
+                     (37, 48), (37, 49), (37, 50), (37, 51),
+                     (37, 52), (37, 53), (44, 52), (44, 53)):
+            i = (y * 64 + x) * 4
+            center, edge = compact[i:i + 3], compact[i - 4:i - 1]
+            self.assertGreater(lab(center)[0] - lab(edge)[0], 0.75)
+            self.assertGreaterEqual(center[1] - edge[1], 3)
+
+    def test_artwork_can_have_more_than_256_colors(self):
+        colors = [bytes(4)] + [bytes((i % 256, i // 256, 0, 255)) for i in range(257)]
+        raw = b''.join(colors[i % len(colors)] for i in range(4096))
+        finish = {'source_palette': [c.hex() for c in colors],
+                  'palette': ['00000000', 'f8e8deff'], 'map': [0] + [1] * 257,
+                  'filters': [0] * 64}
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'finish.json'
+            path.write_text(json.dumps(finish))
+            with patch.object(artwork, 'generate', return_value=raw):
+                art = artwork.load(ROOT, path)
+        self.assertEqual(len(set(raw[i:i+4] for i in range(0, len(raw), 4))), 258)
+        self.assertEqual(art['design'], raw)
+        self.assertEqual(len(art['palette']), 2)
+
 
 class BuildTests(unittest.TestCase):
     def test_canonical_png(self):
         data = pipeline.build(ROOT)
-        self.assertEqual(len(data), 999)
+        spec = json.loads((ROOT / 'source/manifest.json').read_text())
+        self.assertEqual(len(data), spec['bytes'])
+        self.assertLess(len(data), 1000)
         self.assertEqual(data, (ROOT / "Lumi.png").read_bytes())
-        self.assertEqual(pipeline.verify(ROOT, data)["palette_entries"], 50)
+        self.assertEqual(pipeline.verify(ROOT, data)["palette_entries"], spec['palette_entries'])
 
     def test_relocated_cli_without_a_png_input(self):
         with tempfile.TemporaryDirectory() as folder:

@@ -13,7 +13,7 @@ def load(root, finish_path=None):
     palette = [bytes.fromhex(c.lstrip("#")) for c in finish["source_palette"]]
     lookup = {color: i for i, color in enumerate(palette)}
     try:
-        indices = bytes(lookup[design[i : i + 4]] for i in range(0, len(design), 4))
+        indices = [lookup[design[i : i + 4]] for i in range(0, len(design), 4)]
     except KeyError as error:
         raise ValueError("Artwork color is missing from the export lookup") from error
     export = [bytes.fromhex(c.lstrip("#")) for c in finish["palette"]]
