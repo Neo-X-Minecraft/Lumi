@@ -1,0 +1,21 @@
+name: Build and verify Lumi
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Test the drawing and encoding tools
+        run: python3 -m unittest discover -s tests -v
+      - name: Generate and verify Lumi
+        run: |
+          python3 lumi.py artwork
+          python3 lumi.py build
+          python3 lumi.py verify build/Lumi.png
